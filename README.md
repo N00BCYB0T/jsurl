@@ -139,6 +139,36 @@ When in interactive mode (`-i`), you can use these special commands:
 | 4 | Timeout |
 | 5 | WebSocket error |
 
+## Proxy Support
+
+Both HTTP and WebSocket support proxies (`-x` flag), but they work differently:
+
+### HTTP Proxy
+
+HTTP requests use forward proxy mode. The request is sent directly to the proxy with an absolute URL:
+
+```
+Client -> Proxy -> Target
+         GET http://target.com/path HTTP/1.1
+```
+
+### WebSocket Proxy
+
+WebSocket uses HTTP CONNECT tunnel. A tunnel is established first, then WebSocket handshake occurs:
+
+```
+Client -> Proxy -> CONNECT target:80 -> 200 OK -> WS Handshake -> Target
+```
+
+This is required because WebSocket upgrades the HTTP connection to a persistent bidirectional channel.
+
+### Burp Suite Tips
+
+1. Both HTTP and WebSocket traffic will appear in Burp
+2. HTTP: **Proxy → HTTP history**
+3. WebSocket: **Proxy → WebSockets history**
+4. Enable "Intercept WebSocket messages" in Proxy settings
+
 ## Programmatic API
 
 ```javascript

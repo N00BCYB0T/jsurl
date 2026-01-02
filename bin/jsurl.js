@@ -13,7 +13,7 @@ import readline from 'readline';
 import { parseArgs } from '../lib/cli/parser.js';
 import { generateHelp, getVersion } from '../lib/cli/help.js';
 import { sendRequest, getRequestString } from '../lib/http/client.js';
-import { createRequestObject } from '../lib/http/request.js';
+import { createRequestObject, parseProxy } from '../lib/http/request.js';
 import { parseResponse } from '../lib/http/response.js';
 import { processResponseCookies } from '../lib/cookies/manager.js';
 import { WebSocketClient } from '../lib/websocket/client.js';
@@ -48,15 +48,8 @@ async function handleWebSocket(params, urlInfo) {
         );
     }
 
-    // Parse proxy if provided
-    let proxy = null;
-    if (params.proxy) {
-        const [proxyHost, proxyPort] = params.proxy.split(':');
-        proxy = {
-            host: proxyHost || '127.0.0.1',
-            port: parseInt(proxyPort) || 8080,
-        };
-    }
+    // Parse proxy if provided (reuse same parser as HTTP)
+    const proxy = parseProxy(params.proxy);
 
     // Log configuration in verbose mode
     if (params.verbose && !params.silent) {
@@ -69,6 +62,8 @@ async function handleWebSocket(params, urlInfo) {
         logger.info(`Secure: ${isSecure ? 'Yes (wss)' : 'No (ws)'}`);
         if (proxy) {
             logger.info(`Proxy: ${proxy.host}:${proxy.port}`);
+        } else {
+            logger.info(`Proxy: (none - direct connection)`);
         }
         logger.info(`Timeout: ${params.timeout}ms`);
         logger.info(`Listen: ${params.wsListen}ms`);
