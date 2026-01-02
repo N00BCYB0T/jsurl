@@ -1,34 +1,88 @@
 # jsurl
 
-Raw socket HTTP/WebSocket client for Node.js. Uses only Node.js internal modules - no external dependencies.
+**Raw Socket HTTP/WebSocket Client for Security Testing**
+
+A versatile command-line tool for HTTP requests and WebSocket connections using raw TCP sockets. Built with zero external dependencies using only Node.js built-in modules.
 
 ## Features
 
-- Raw TCP socket connections
-- HTTP/1.1 protocol support
-- **WebSocket client with CLI support**
-- Multipart form-data (file uploads)
-- Cookie management (Netscape format)
-- Proxy support (HTTP proxies, Burp Suite, etc.)
-- Interactive WebSocket mode
-- CLI and programmatic API
-- Zero external dependencies
+- **Raw TCP Socket Connections** - Direct socket control for security testing
+- **HTTP/1.1 Protocol Support** - Full request/response handling
+- **WebSocket Client** - RFC 6455 compliant with interactive mode
+- **Multipart Form-Data** - File uploads with custom filenames
+- **Cookie Management** - Netscape format cookie jar
+- **Proxy Support** - HTTP proxies, Burp Suite integration
+- **Interactive WebSocket Mode** - Real-time bidirectional communication
+- **Colored Output** - Beautiful terminal output
+- **Zero Dependencies** - Uses only Node.js built-in modules
 
 ## Installation
 
 ```bash
+# Clone or copy to your project
 cd jsurl
+
+# Link globally
 npm link
+
+# Or run directly
+node bin/jsurl.js
 ```
 
-## HTTP Usage
+## Usage
+
+```bash
+jsurl -u <url> [options]
+```
+
+### Request Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-u`, `--url` | Target URL (http://, https://, ws://, wss://) | required |
+| `-X`, `--method` | HTTP method (GET, POST, PUT, DELETE, etc.) | GET |
+| `-d`, `--data` | Request body data | - |
+| `-F`, `--form` | Form field (file=@path or name=value) | - |
+| `-H`, `--header` | Custom header | - |
+| `-b`, `--cookie` | Cookie to send | - |
+| `-c`, `--cookie-jar` | File to save received cookies | - |
+| `-x`, `--proxy` | Proxy in host:port format | - |
+| `-p`, `--port` | Target port | 80 |
+| `-t`, `--timeout` | Timeout in milliseconds | 10000 |
+
+### WebSocket Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-m`, `--message` | Message to send (can repeat) | - |
+| `-l`, `--listen` | Listen time in ms (0 = until close) | 2000 |
+| `-i`, `--interactive` | Interactive mode (read from stdin) | false |
+| `--ping` | Send ping frame | false |
+| `-r`, `--raw` | Raw output (messages only) | false |
+
+### Output Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-v`, `--verbose` | Verbose output | false |
+| `-s`, `--silent` | Silent mode | false |
+| `-n`, `--no-color` | Disable colored output | false |
+| `-o`, `--output` | Save response to file | - |
+| `-h`, `--help` | Show help message | - |
+| `-V`, `--version` | Show version | - |
+
+## Examples
+
+### HTTP Requests
 
 ```bash
 # Simple GET request
 jsurl -u example.com/api
+# → {"status": "ok"}
 
 # POST with form data
 jsurl -u example.com/login -X POST -d "user=admin&pass=123"
+# → {"token": "abc123"}
 
 # POST with JSON
 jsurl -u example.com/api -X POST -d '{"key":"value"}' -H "Content-Type: application/json"
@@ -36,27 +90,34 @@ jsurl -u example.com/api -X POST -d '{"key":"value"}' -H "Content-Type: applicat
 # File upload
 jsurl -u example.com/upload -X POST -F "file=@/path/to/file.txt"
 
-# File upload with custom filename (path traversal testing)
+# File upload with path traversal
 jsurl -u example.com/upload -X POST -F "file=@local.txt;filename=../../etc/passwd"
 
-# Via proxy (Burp Suite, netcat, etc.)
+# Multiple form fields
+jsurl -u example.com/upload -X POST -F "file=@photo.jpg" -F "name=photo" -F "desc=test"
+
+# Custom headers
+jsurl -u example.com/api -H "Authorization: Bearer token" -H "X-Custom: value"
+
+# With cookies
+jsurl -u example.com/dashboard -b "session=abc123; token=xyz"
+
+# Via proxy (Burp Suite)
 jsurl -u example.com/api -x 127.0.0.1:8080
-
-# Custom port
-jsurl -u example.com:8443/secure
-
-# Verbose mode (shows full request/response)
-jsurl -u example.com/api -v
 
 # Save response to file
 jsurl -u example.com/api -o response.txt
+
+# Verbose mode
+jsurl -u example.com/api -v
 ```
 
-## WebSocket Usage
+### WebSocket
 
 ```bash
 # Connect and send message
 jsurl -u ws://example.com/ws -m "hello"
+# → {"response": "world"}
 
 # Send multiple messages
 jsurl -u ws://example.com/ws -m "msg1" -m "msg2" -m "msg3"
@@ -64,11 +125,12 @@ jsurl -u ws://example.com/ws -m "msg1" -m "msg2" -m "msg3"
 # Listen longer for responses (5 seconds)
 jsurl -u ws://example.com/ws -m "key" -l 5000
 
-# Interactive mode (read from stdin)
+# Interactive mode
 jsurl -u ws://example.com/ws -i
 
-# Raw output (messages only, no prefixes)
+# Raw output (messages only)
 jsurl -u ws://example.com/ws -m "key" -r
+# → secret_flag_here
 
 # With custom headers
 jsurl -u ws://example.com/ws -m "auth" -H "Authorization: Bearer token"
@@ -76,57 +138,44 @@ jsurl -u ws://example.com/ws -m "auth" -H "Authorization: Bearer token"
 # Via proxy
 jsurl -u ws://example.com/ws -m "test" -x 127.0.0.1:8080
 
-# Verbose mode
-jsurl -u ws://example.com/ws -m "debug" -v
-
 # Send ping frame
 jsurl -u ws://example.com/ws --ping
+
+# Verbose mode
+jsurl -u ws://example.com/ws -m "debug" -v
 ```
 
 ### Interactive Mode Commands
 
 When in interactive mode (`-i`), you can use these special commands:
 
-- `/quit` or `/exit` - Close connection
-- `/ping` - Send ping frame
+| Command | Description |
+|---------|-------------|
+| `/quit` or `/exit` | Close connection |
+| `/ping` | Send ping frame |
+| `/help` | Show available commands |
 
-## CLI Options
+### Practical Security Testing Examples
 
-### Request Options
+```bash
+# Test path traversal in file upload
+jsurl -u target.com/upload -X POST -F "file=@shell.php;filename=../../../var/www/shell.php"
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-u, --url` | Target URL (http://, https://, ws://, wss://) | required |
-| `-X, --method` | HTTP method | GET |
-| `-d, --data` | Request body data | - |
-| `-F, --form` | Form field (file=@path or name=value) | - |
-| `-H, --header` | Custom header | - |
-| `-b, --cookie` | Cookie to send | - |
-| `-c, --cookie-jar` | File to save cookies | - |
-| `-x, --proxy` | Proxy host:port | - |
-| `-p, --port` | Target port | 80 |
-| `-t, --timeout` | Timeout in ms | 10000 |
+# Send SSRF payload
+jsurl -u target.com/fetch -X POST -d "url=http://169.254.169.254/latest/meta-data/"
 
-### WebSocket Options
+# Test WebSocket injection
+jsurl -u ws://target.com/chat -m '{"type":"message","content":"<script>alert(1)</script>"}'
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-m, --message` | Message to send (can repeat) | - |
-| `-l, --listen` | Listen time in ms (0 = until close) | 2000 |
-| `-i, --interactive` | Interactive mode (read from stdin) | false |
-| `--ping` | Send ping frame | false |
-| `-r, --raw` | Raw output (messages only) | false |
+# Capture session via proxy
+jsurl -u target.com/login -X POST -d "user=admin&pass=test" -x 127.0.0.1:8080
 
-### Output Options
+# Test CRLF injection
+jsurl -u target.com/redirect -H $'X-Injected: true\r\nSet-Cookie: admin=1'
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-v, --verbose` | Verbose output | false |
-| `-s, --silent` | Silent mode | false |
-| `-n, --no-color` | Disable colors | false |
-| `-o, --output` | Save response to file | - |
-| `-h, --help` | Show help | - |
-| `-V, --version` | Show version | - |
+# WebSocket with auth bypass
+jsurl -u ws://target.com/admin -m "list_users" -H "X-Admin: true"
+```
 
 ## Exit Codes
 
@@ -138,6 +187,7 @@ When in interactive mode (`-i`), you can use these special commands:
 | 3 | HTTP error (4xx/5xx) |
 | 4 | Timeout |
 | 5 | WebSocket error |
+| 99 | Unknown error |
 
 ## Proxy Support
 
@@ -148,7 +198,7 @@ Both HTTP and WebSocket support proxies (`-x` flag), but they work differently:
 HTTP requests use forward proxy mode. The request is sent directly to the proxy with an absolute URL:
 
 ```
-Client -> Proxy -> Target
+Client → Proxy → Target
          GET http://target.com/path HTTP/1.1
 ```
 
@@ -157,10 +207,8 @@ Client -> Proxy -> Target
 WebSocket uses HTTP CONNECT tunnel. A tunnel is established first, then WebSocket handshake occurs:
 
 ```
-Client -> Proxy -> CONNECT target:80 -> 200 OK -> WS Handshake -> Target
+Client → Proxy → CONNECT target:80 → 200 OK → WS Handshake → Target
 ```
-
-This is required because WebSocket upgrades the HTTP connection to a persistent bidirectional channel.
 
 ### Burp Suite Tips
 
@@ -169,7 +217,9 @@ This is required because WebSocket upgrades the HTTP connection to a persistent 
 3. WebSocket: **Proxy → WebSockets history**
 4. Enable "Intercept WebSocket messages" in Proxy settings
 
-## Programmatic API
+## API Usage
+
+You can also use jsurl as a library in your Node.js projects:
 
 ```javascript
 import { sendRequest, createRequestObject } from 'jsurl/http';
@@ -195,7 +245,29 @@ const ws = new WebSocketClient({
 await ws.connect();
 ws.on('message', (data) => console.log(data));
 ws.send('Hello');
+ws.close();
 ```
+
+## Technical Details
+
+### HTTP Protocol
+
+- Follows HTTP/1.1 specification
+- Supports chunked transfer encoding
+- Cookie management in Netscape format
+- Multipart/form-data for file uploads
+
+### WebSocket Protocol
+
+- Follows RFC 6455
+- Supports text and binary frames
+- Automatic ping/pong handling
+- Masking for client-to-server frames
+
+### Proxy Modes
+
+- **HTTP Forward Proxy** - Absolute URL in request line
+- **HTTP CONNECT Tunnel** - For WebSocket and HTTPS
 
 ## Architecture
 
@@ -227,66 +299,6 @@ jsurl/
 └── package.json
 ```
 
-## Module Responsibilities
-
-### Transport Layer (lib/transport/)
-
-Low-level TCP socket operations. Provides connection management for both HTTP and WebSocket.
-
-- `createConnection()` - Create TCP connection
-- `sendAndReceive()` - Send data and wait for response (HTTP)
-- `createPersistentConnection()` - Keep connection open (WebSocket)
-
-### HTTP Module (lib/http/)
-
-HTTP/1.1 protocol implementation.
-
-- `buildRequest()` - Build raw HTTP request
-- `parseResponse()` - Parse HTTP response
-- `sendRequest()` - Send request and receive response
-
-### WebSocket Module (lib/websocket/)
-
-WebSocket protocol (RFC 6455) implementation.
-
-- `createFrame()` - Build WebSocket frame
-- `parseFrame()` - Parse WebSocket frame
-- `WebSocketClient` - Full WebSocket client with events
-
-### CLI Module (lib/cli/)
-
-Command line interface.
-
-- `parseArgs()` - Parse command line arguments
-- `generateHelp()` - Generate help message
-- `options` - CLI options definition
-
-## Request Flow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLI (bin/jsurl.js)                       │
-│  Parse args -> Create request object -> Send -> Show response  │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     HTTP Client (lib/http/)                     │
-│  buildRequest() -> Buffer with HTTP request                    │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Transport (lib/transport/)                    │
-│  createConnection() -> sendAndReceive() -> Response buffer     │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Target Server or Proxy (e.g. Burp Suite)           │
-└─────────────────────────────────────────────────────────────────┘
-```
-
 ## Dependencies
 
 None. Uses only Node.js internal modules:
@@ -296,6 +308,7 @@ None. Uses only Node.js internal modules:
 - `path` - Path utilities
 - `crypto` - Cryptographic functions
 - `events` - Event emitter (WebSocket)
+- `readline` - Interactive mode
 - `module` - ESM utilities
 
 ## Requirements
@@ -305,3 +318,7 @@ None. Uses only Node.js internal modules:
 ## License
 
 MIT
+
+---
+
+Made for security professionals
