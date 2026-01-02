@@ -1,15 +1,16 @@
 # jsurl
 
-Raw socket HTTP client for Node.js. Uses only Node.js internal modules - no external dependencies.
+Raw socket HTTP/WebSocket client for Node.js. Uses only Node.js internal modules - no external dependencies.
 
 ## Features
 
 - Raw TCP socket connections
 - HTTP/1.1 protocol support
+- **WebSocket client with CLI support**
 - Multipart form-data (file uploads)
 - Cookie management (Netscape format)
 - Proxy support (HTTP proxies, Burp Suite, etc.)
-- WebSocket client
+- Interactive WebSocket mode
 - CLI and programmatic API
 - Zero external dependencies
 
@@ -20,7 +21,7 @@ cd jsurl
 npm link
 ```
 
-## CLI Usage
+## HTTP Usage
 
 ```bash
 # Simple GET request
@@ -51,11 +52,51 @@ jsurl -u example.com/api -v
 jsurl -u example.com/api -o response.txt
 ```
 
+## WebSocket Usage
+
+```bash
+# Connect and send message
+jsurl -u ws://example.com/ws -m "hello"
+
+# Send multiple messages
+jsurl -u ws://example.com/ws -m "msg1" -m "msg2" -m "msg3"
+
+# Listen longer for responses (5 seconds)
+jsurl -u ws://example.com/ws -m "key" -l 5000
+
+# Interactive mode (read from stdin)
+jsurl -u ws://example.com/ws -i
+
+# Raw output (messages only, no prefixes)
+jsurl -u ws://example.com/ws -m "key" -r
+
+# With custom headers
+jsurl -u ws://example.com/ws -m "auth" -H "Authorization: Bearer token"
+
+# Via proxy
+jsurl -u ws://example.com/ws -m "test" -x 127.0.0.1:8080
+
+# Verbose mode
+jsurl -u ws://example.com/ws -m "debug" -v
+
+# Send ping frame
+jsurl -u ws://example.com/ws --ping
+```
+
+### Interactive Mode Commands
+
+When in interactive mode (`-i`), you can use these special commands:
+
+- `/quit` or `/exit` - Close connection
+- `/ping` - Send ping frame
+
 ## CLI Options
+
+### Request Options
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-u, --url` | Target URL (required) | - |
+| `-u, --url` | Target URL (http://, https://, ws://, wss://) | required |
 | `-X, --method` | HTTP method | GET |
 | `-d, --data` | Request body data | - |
 | `-F, --form` | Form field (file=@path or name=value) | - |
@@ -65,8 +106,23 @@ jsurl -u example.com/api -o response.txt
 | `-x, --proxy` | Proxy host:port | - |
 | `-p, --port` | Target port | 80 |
 | `-t, --timeout` | Timeout in ms | 10000 |
+
+### WebSocket Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-m, --message` | Message to send (can repeat) | - |
+| `-l, --listen` | Listen time in ms (0 = until close) | 2000 |
+| `-i, --interactive` | Interactive mode (read from stdin) | false |
+| `--ping` | Send ping frame | false |
+| `-r, --raw` | Raw output (messages only) | false |
+
+### Output Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
 | `-v, --verbose` | Verbose output | false |
-| `-s, --silent` | Silent mode (body only) | false |
+| `-s, --silent` | Silent mode | false |
 | `-n, --no-color` | Disable colors | false |
 | `-o, --output` | Save response to file | - |
 | `-h, --help` | Show help | - |
@@ -81,6 +137,7 @@ jsurl -u example.com/api -o response.txt
 | 2 | Connection error |
 | 3 | HTTP error (4xx/5xx) |
 | 4 | Timeout |
+| 5 | WebSocket error |
 
 ## Programmatic API
 
