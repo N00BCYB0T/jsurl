@@ -40,6 +40,14 @@ async function handleWebSocket(params, urlInfo) {
     const port = params.port !== 80 ? params.port : (urlInfo.port || getDefaultPort(urlInfo.protocol));
     const isSecure = urlInfo.protocol === 'wss';
 
+    // WSS (TLS) not yet supported
+    if (isSecure) {
+        throw new ValidationError(
+            'wss:// (WebSocket over TLS) is not yet supported. Use ws:// instead.',
+            'protocol'
+        );
+    }
+
     // Parse proxy if provided
     let proxy = null;
     if (params.proxy) {
@@ -137,7 +145,8 @@ async function handleWebSocket(params, urlInfo) {
 
             // Interactive mode
             if (params.wsInteractive) {
-                output.info('Interactive mode. Type messages and press Enter. Ctrl+C to exit.');
+                output.info('Interactive mode. Type messages and press Enter.');
+                output.info('Commands: /quit, /exit, /ping, /help');
                 
                 const rl = readline.createInterface({
                     input: process.stdin,
@@ -154,9 +163,12 @@ async function handleWebSocket(params, urlInfo) {
                             output.info('Closing connection...');
                             ws.close();
                             rl.close();
+                            return;
                         } else if (trimmed === '/ping') {
                             output.info('Sending ping...');
                             ws.ping();
+                        } else if (trimmed === '/help') {
+                            output.info('Commands: /quit, /exit, /ping, /help');
                         } else {
                             output.send(trimmed);
                             ws.send(trimmed);
@@ -169,6 +181,8 @@ async function handleWebSocket(params, urlInfo) {
                     if (connected) {
                         ws.close();
                     }
+                    // Resolve when readline closes in interactive mode
+                    resolve(EXIT_CODES.SUCCESS);
                 });
 
                 // Don't auto-close in interactive mode
@@ -286,64 +300,64 @@ async function handleHttp(params, urlInfo) {
         console.log(getRequestString(requestObj));
     }
 
-    // Send request
-    if (!params.silent) {
-        const useProxy = requestObj.proxy && requestObj.proxy.host;
-        const connectTarget = useProxy 
-            ? `${requestObj.proxy.host}:${requestObj.proxy.port} (proxy)`
-            : `${host}:${requestObj.port}`;
-        logger.info(`Connecting to ${connectTarget}...`);
-    }
-
-    const response = await sendRequest(requestObj);
-
-    // Parse response
-    const parsedResponse = parseResponse(response);
-
-    // Response logging
-    if (params.verbose && !params.silent) {
-        logger.separator('-');
-        logger.title('HTTP Response');
-        logger.separator('-');
-    }
-
-    // Save to file if specified
-    if (requestObj.output) {
-        fs.writeFileSync(requestObj.output, parsedResponse.body);
+        // Send request
         if (!params.silent) {
-            logger.success(`Response saved to ${requestObj.output}`);
+            const useProxy = requestObj.proxy && requestObj.proxy.host;
+            const connectTarget = useProxy 
+                ? `${requestObj.proxy.host}:${requestObj.proxy.port} (proxy)`
+                : `${host}:${requestObj.port}`;
+            logger.info(`Connecting to ${connectTarget}...`);
         }
-    }
 
-    // Show response
-    if (params.silent) {
-        // Silent mode: only body
-        console.log(parsedResponse.body);
-    } else if (params.verbose) {
-        // Verbose mode: full response
-        console.log(response);
-    } else {
-        // Normal mode: status + body
-        const statusColor = parsedResponse.statusCode < 400 ? colors.green : colors.red;
-        logger.success(`Status: ${statusColor}${parsedResponse.statusCode} ${parsedResponse.statusText}${colors.reset}`);
-        if (!requestObj.output) {
+        const response = await sendRequest(requestObj);
+
+        // Parse response
+        const parsedResponse = parseResponse(response);
+
+        // Response logging
+        if (params.verbose && !params.silent) {
+            logger.separator('-');
+            logger.title('HTTP Response');
+            logger.separator('-');
+        }
+
+        // Save to file if specified
+        if (requestObj.output) {
+            fs.writeFileSync(requestObj.output, parsedResponse.body);
+            if (!params.silent) {
+                logger.success(`Response saved to ${requestObj.output}`);
+            }
+        }
+
+        // Show response
+        if (params.silent) {
+            // Silent mode: only body
             console.log(parsedResponse.body);
+        } else if (params.verbose) {
+            // Verbose mode: full response
+            console.log(response);
+        } else {
+            // Normal mode: status + body
+            const statusColor = parsedResponse.statusCode < 400 ? colors.green : colors.red;
+            logger.success(`Status: ${statusColor}${parsedResponse.statusCode} ${parsedResponse.statusText}${colors.reset}`);
+            if (!requestObj.output) {
+                console.log(parsedResponse.body);
+            }
         }
-    }
 
-    // Process cookies
-    if (params.cookieJar) {
-        const { saved } = processResponseCookies(response, params.cookieJar, host);
-        if (saved > 0 && !params.silent) {
-            logger.success(`${saved} cookie(s) saved to ${params.cookieJar}`);
+        // Process cookies
+        if (params.cookieJar) {
+            const { saved } = processResponseCookies(response, params.cookieJar, host);
+            if (saved > 0 && !params.silent) {
+                logger.success(`${saved} cookie(s) saved to ${params.cookieJar}`);
+            }
         }
-    }
 
-    // Exit code based on HTTP status
-    if (parsedResponse.isClientError && parsedResponse.isClientError()) {
+        // Exit code based on HTTP status
+        if (parsedResponse.isClientError && parsedResponse.isClientError()) {
         return EXIT_CODES.HTTP_ERROR;
-    }
-    if (parsedResponse.isServerError && parsedResponse.isServerError()) {
+        }
+        if (parsedResponse.isServerError && parsedResponse.isServerError()) {
         return EXIT_CODES.HTTP_ERROR;
     }
 
