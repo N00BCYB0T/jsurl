@@ -1,0 +1,49 @@
+{
+  "name": "jsurl",
+  "version": "1.0.0",
+  "description": "Raw socket HTTP client for Node.js - No external dependencies",
+  "type": "module",
+  "main": "lib/index.js",
+  "bin": {
+    "jsurl": "./bin/jsurl.js"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./http": "./lib/http/index.js",
+    "./websocket": "./lib/websocket/index.js",
+    "./cli": "./lib/cli/index.js",
+    "./utils": "./lib/utils/index.js",
+    "./transport": "./lib/transport/index.js",
+    "./cookies": "./lib/cookies/index.js"
+  },
+  "scripts": {
+    "start": "node bin/jsurl.js",
+    "test": "node bin/jsurl.js -h"
+  },
+  "keywords": [
+    "http",
+    "client",
+    "cli",
+    "request",
+    "curl",
+    "proxy",
+    "security",
+    "pentest",
+    "websocket",
+    "socket",
+    "raw"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": {
+    "url": ""
+  },
+  "homepage": ""
+}
